@@ -461,3 +461,43 @@ class TestMetricsEvent(AddonEvent):
 
     async def get_event_data(self):
         return (self._loss, self._accuracy)
+
+class NetworkEvent(AddonEvent):
+    def __init__(self, interface="eth0",
+        network="192.168.50.2",
+        bandwidth="5Gbps",
+        delay="0ms",
+        delay_distro="10ms",
+        delay_distribution="normal",
+        loss="0%",
+        duplicate="0%",
+        corrupt="0%",
+        reordering="0%"):
+
+        self._interface=interface
+        self._network=network
+        self._bandwidth=bandwidth
+        self._delay=delay
+        self._delay_distro=delay_distro
+        self._delay_distribution=delay_distribution
+        self._loss = loss
+        self._duplicate=duplicate
+        self.corrupt=corrupt
+        self.reordering=reordering
+
+    def __str__(self):
+        return "NetworkEvent"
+
+    async def get_event_data(self):
+        return {
+            "interface":self._interface,
+            "network":self._network,
+            "bandwidth":self._bandwidth,
+            "delay":self._delay,
+            "delay_distro":self._delay_distro,
+            "delay_distribution":self._delay_distribution,
+            "loss":self._loss,
+            "duplicate":self._duplicate,
+            "corrupt":self._corrupt,
+            "reordering":self._reordering,
+        }
