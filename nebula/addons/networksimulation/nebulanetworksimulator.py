@@ -5,9 +5,12 @@ from functools import cached_property
 
 from nebula.addons.networksimulation.networksimulator import NetworkSimulator
 from nebula.core.eventmanager import EventManager
-from nebula.core.nebulaevents import GPSEvent
+from nebula.core.nebulaevents import GPSEvent, NetworkEvent
 from nebula.core.network.communications import CommunicationsManager
 from nebula.core.utils.locker import Locker
+
+# CHANGE: Added Config object declaration
+from nebula.config.config import Config
 
 
 class NebulaNS(NetworkSimulator):
@@ -19,7 +22,8 @@ class NebulaNS(NetworkSimulator):
     }
     IP_MULTICAST = "239.255.255.250"
 
-    def __init__(self, changing_interval, interface, verbose=False):
+    # CHANGE: Added "config" argument to NetbulaNS NetworkSimulator constructor
+    def __init__(self, changing_interval, interface, verbose=False, config = None):
         self._refresh_interval = changing_interval
         self._node_interface = interface
         self._verbose = verbose
@@ -27,6 +31,9 @@ class NebulaNS(NetworkSimulator):
         self._network_conditions_lock = Locker("network_conditions_lock", async_lock=True)
         self._current_network_conditions = {}
         self._running = asyncio.Event()
+
+        #CHANGE: Added "_config" field to instance
+        self._config = config
 
     @cached_property
     def cm(self):
@@ -38,9 +45,18 @@ class NebulaNS(NetworkSimulator):
         grace_time = self.cm.config.participant["mobility_args"]["grace_time_mobility"]
         # if self._verbose: logging.info(f"Waiting {grace_time}s to start applying network conditions based on distances between devices")
         # await asyncio.sleep(grace_time)
+        
+        #CHANGE: Do NOT subscribe to GPS event => only our custom network event can modify the network state now!
+        # await EventManager.get_instance().subscribe_addonevent(
+        #     GPSEvent, self._change_network_conditions_based_on_distances
+        # )
+
+        # CHANGE: Added new event to listen on
         await EventManager.get_instance().subscribe_addonevent(
-            GPSEvent, self._change_network_conditions_based_on_distances
+            NetworkEvent, self._change_network_conditions_based_on_network_event
         )
+        logging.info("🌐  Nebula Network Simulator subscribed to NetworkEvent.")
+        
 
     async def stop(self):
         logging.info("🌐  Nebula Network Simulator stopping...")
@@ -85,6 +101,25 @@ class NebulaNS(NetworkSimulator):
         except Exception:
             logging.exception("📍  Error changing connections based on distance")
         await asyncio.sleep(self._refresh_interval)
+
+    async def _change_network_conditions_based_on_network_event(self, networkevent: NetworkEvent):
+        network_params = await networkevent.get_event_data()
+        self._set_network_condition_for_addr(
+            interface=network_params["interface"],
+            network=network_params["network"],
+            bandwidth=network_params["bandwidth"],
+            delay=network_params["delay"],
+            delay_distro=network_params["delay_distro"],
+            delay_distribution=network_params["delay_distribution"],
+            loss=network_params["loss"],
+            duplicate=network_params["duplicate"],
+            corrupt=network_params["corrupt"],
+            reordering=network_params["reordering"]
+        )
+        # NOTE: Not sure if we need it, I copied it from `_change_network_conditions_based_on_distances` and modified it.
+        # async with self._network_conditions_lock:
+        #     self._current_network_conditions = network_params
+
 
     async def set_thresholds(self, thresholds: dict):
         async with self._network_conditions_lock:
