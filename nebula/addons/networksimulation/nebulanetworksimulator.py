@@ -152,7 +152,8 @@ class NebulaNS(NetworkSimulator):
     def _set_network_condition_for_addr(
         self,
         interface="eth0",
-        network="192.168.50.2",
+        # CHANGE: Removed default network, replaced it with None => all traffic via that interface is affected by tcset
+        network=None,
         bandwidth="5Gbps",
         delay="0ms",
         delay_distro="10ms",
