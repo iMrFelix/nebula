@@ -68,8 +68,7 @@ class AddondManager:
         if self._config.participant["network_args"]["simulation"]:
             refresh_conditions_interval = 5
 
-            # CHANGE: Pass entire Config configuration object to network simulator factory
-            network_simulation = factory_network_simulator("nebula", refresh_conditions_interval, "eth0", verbose=False, config=self._config)
+            network_simulation = factory_network_simulator("nebula", refresh_conditions_interval, "eth0", verbose=False)
             self._addons.append(network_simulation)
 
         for add in self._addons:

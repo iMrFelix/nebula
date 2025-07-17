@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
 
-# CHANGE: Added Config object declaration
-from nebula.config.config import Config
-
 
 class NetworkSimulator(ABC):
     """
@@ -75,11 +72,11 @@ class NetworkSimulator(ABC):
         pass
 
 
+
 class NetworkSimulatorException(Exception):
     pass
 
-#CHANGE: Added additional argument "config", which gets passed to the network simulator constructor
-def factory_network_simulator(net_sim, changing_interval, interface, verbose, config) -> NetworkSimulator:
+def factory_network_simulator(net_sim, changing_interval, interface, verbose) -> NetworkSimulator:
     from nebula.addons.networksimulation.nebulanetworksimulator import NebulaNS
 
     SIMULATION_SERVICES = {
@@ -92,7 +89,6 @@ def factory_network_simulator(net_sim, changing_interval, interface, verbose, co
         print
 
     if net_serv:
-        #CHANGE: Pass "config" argument to constructor
-        return net_serv(changing_interval, interface, verbose, config)
+        return net_serv(changing_interval, interface, verbose)
     else:
         raise NetworkSimulatorException(f"Network Simulator {net_sim} not found")
