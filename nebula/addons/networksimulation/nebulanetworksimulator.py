@@ -58,6 +58,17 @@ class NebulaNS(NetworkSimulator):
         )
         logging.info("🌐  Nebula Network Simulator subscribed to NetworkEvent.")
         
+        # Get list of form [nei_ip_1:nei_port_1, ..., nei_port_k:nei_port_k]
+        neighbors = self._config.participant["network_args"]["neighbors"].split(" ")
+        
+        # Get neighbor IPs
+        neighbors_ips = [nei.split(":")[0] for nei in neighbors]
+
+        # Enqueue NetworkEvent for each neighbor
+        for nei_ip in neighbors_ips:
+            logging.info(f"🌐  Nebula Network Simulator: Publishing Network Event for dest. IP {nei_ip}")
+            await EventManager.get_instance().publish_addonevent(NetworkEvent("eth1", nei_ip, "1Kbps", "0ms", "100ms", "normal", "10%", "0%", "0%", "0%"))
+
         logging.info(f"🌐  Nebula Network Simulator has configuration:\n{self._config.to_json()}")
 
     async def stop(self):
