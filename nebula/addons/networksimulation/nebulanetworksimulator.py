@@ -67,8 +67,8 @@ class NebulaNS(NetworkSimulator):
         # Enqueue NetworkEvent for each neighbor
         for nei_ip in neighbors_ips:
             logging.info(f"🌐  Nebula Network Simulator: Publishing Network Event for dest. IP {nei_ip}")
-            await EventManager.get_instance().publish_addonevent(NetworkEvent("eth0", nei_ip, "10Mbps", "0ms", "100ms", "normal", "10%", "0%", "0%", "0%"))
-            await EventManager.get_instance().publish_addonevent(NetworkEvent("eth1", nei_ip, "10Mbps", "0ms", "100ms", "normal", "10%", "0%", "0%", "0%"))
+            await EventManager.get_instance().publish_addonevent(NetworkEvent("eth0", None, "10Mbps", "0ms", "100ms", "normal", "10%", "0%", "0%", "0%"))
+            await EventManager.get_instance().publish_addonevent(NetworkEvent("eth1", None, "10Mbps", "0ms", "100ms", "normal", "10%", "0%", "0%", "0%"))
 
         logging.info(f"🌐  Nebula Network Simulator has configuration:\n{self._config.to_json()}")
 
