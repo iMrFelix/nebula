@@ -33,6 +33,7 @@ class NebulaNS(NetworkSimulator):
         self._running = asyncio.Event()
 
         #CHANGE: Added "_config" field to instance
+        self._config : Config
         self._config = config
 
     @cached_property
@@ -57,7 +58,7 @@ class NebulaNS(NetworkSimulator):
         )
         logging.info("🌐  Nebula Network Simulator subscribed to NetworkEvent.")
         
-        logging.info(f"🌐  Nebula Network Simulator has configuration:\n{self._config}")
+        logging.info(f"🌐  Nebula Network Simulator has configuration:\n{self._config.to_json()}")
 
     async def stop(self):
         logging.info("🌐  Nebula Network Simulator stopping...")
