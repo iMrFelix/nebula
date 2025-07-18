@@ -9,6 +9,10 @@ from nebula.core.nebulaevents import GPSEvent, NetworkEvent
 from nebula.core.network.communications import CommunicationsManager
 from nebula.core.utils.locker import Locker
 
+# CHANGE: Added Config object declaration
+from nebula.config.config import Config
+
+
 class NebulaNS(NetworkSimulator):
     NETWORK_CONDITIONS = {
         100: {"bandwidth": "5Gbps", "delay": "5ms"},
@@ -18,7 +22,8 @@ class NebulaNS(NetworkSimulator):
     }
     IP_MULTICAST = "239.255.255.250"
 
-    def __init__(self, changing_interval, interface, verbose=False):
+    # CHANGE: Added "config" argument to NetbulaNS NetworkSimulator constructor
+    def __init__(self, changing_interval, interface, verbose=False, config = None):
         self._refresh_interval = changing_interval
         self._node_interface = interface
         self._verbose = verbose
@@ -27,7 +32,8 @@ class NebulaNS(NetworkSimulator):
         self._current_network_conditions = {}
         self._running = asyncio.Event()
 
-
+        #CHANGE: Added "_config" field to instance
+        self._config = config
 
     @cached_property
     def cm(self):
@@ -51,9 +57,6 @@ class NebulaNS(NetworkSimulator):
         )
         logging.info("🌐  Nebula Network Simulator subscribed to NetworkEvent.")
         
-
-        # CHANGE: Trigger a first NetworkEvent which sets latency to first neighbor (eth0 interface) to 1000ms
-        logging.info("🌐  Nebula Network Simulator has the following configuration:", self.config)
 
     async def stop(self):
         logging.info("🌐  Nebula Network Simulator stopping...")
