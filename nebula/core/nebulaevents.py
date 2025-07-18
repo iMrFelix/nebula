@@ -482,8 +482,8 @@ class NetworkEvent(AddonEvent):
         self._delay_distribution=delay_distribution
         self._loss = loss
         self._duplicate=duplicate
-        self.corrupt=corrupt
-        self.reordering=reordering
+        self._corrupt=corrupt
+        self._reordering=reordering
 
     def __str__(self):
         return "NetworkEvent"
