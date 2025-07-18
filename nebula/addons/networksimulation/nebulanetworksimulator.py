@@ -57,6 +57,7 @@ class NebulaNS(NetworkSimulator):
         )
         logging.info("🌐  Nebula Network Simulator subscribed to NetworkEvent.")
         
+        logging.info(f"🌐  Nebula Network Simulator has configuration:\n{self._config}")
 
     async def stop(self):
         logging.info("🌐  Nebula Network Simulator stopping...")
