@@ -1189,7 +1189,7 @@ class ScenarioManagement:
         i = 2
         container_ids = []
         for idx, node in enumerate(self.config.participants):
-            image = "nebula-core"
+            image = "nebula-core-tc-enabled"
             name = f"{os.environ.get('NEBULA_CONTROLLER_NAME')}_{self.user}-participant{node['device_args']['idx']}"
 
             if node["device_args"]["accelerator"] == "gpu":
