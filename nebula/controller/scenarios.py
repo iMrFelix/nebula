@@ -39,6 +39,7 @@ class Scenario:
         self,
         scenario_title,
         scenario_description,
+        dpsgd_config, # CHANGE: New field for D-PSGD algorithm
         deployment,
         federation,
         topology,
@@ -164,6 +165,7 @@ class Scenario:
         """
         self.scenario_title = scenario_title
         self.scenario_description = scenario_description
+        self.dpsgd_config = dpsgd_config # CHANGE: Assign D-PSGD field to internal config.
         self.deployment = deployment
         self.federation = federation
         self.topology = topology
