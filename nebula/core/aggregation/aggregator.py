@@ -172,17 +172,20 @@ class Aggregator(ABC):
         self._aggregation_waiting_skip.set()
 
 
+# CHANGE: Imported DPSGD, and added it to ALGORITHM_MAP
 def create_aggregator(config, engine) -> Aggregator:
     from nebula.core.aggregation.fedavg import FedAvg
     from nebula.core.aggregation.krum import Krum
     from nebula.core.aggregation.median import Median
     from nebula.core.aggregation.trimmedmean import TrimmedMean
+    from nebula.core.aggregation.dpsgd import DPSGD
 
     ALGORITHM_MAP = {
         "FedAvg": FedAvg,
         "Krum": Krum,
         "Median": Median,
         "TrimmedMean": TrimmedMean,
+        "DPSGD": DPSGD,
     }
     algorithm = config.participant["aggregator_args"]["algorithm"]
     aggregator = ALGORITHM_MAP.get(algorithm)
