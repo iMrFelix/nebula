@@ -179,6 +179,7 @@ def create_aggregator(config, engine) -> Aggregator:
     from nebula.core.aggregation.median import Median
     from nebula.core.aggregation.trimmedmean import TrimmedMean
     from nebula.core.aggregation.dpsgd import DPSGD
+    from nebula.core.aggregation.epidemiclearning import EpidemicLearning
 
     ALGORITHM_MAP = {
         "FedAvg": FedAvg,
@@ -186,6 +187,7 @@ def create_aggregator(config, engine) -> Aggregator:
         "Median": Median,
         "TrimmedMean": TrimmedMean,
         "DPSGD": DPSGD,
+        "EpidemicLearning": EpidemicLearning,
     }
     algorithm = config.participant["aggregator_args"]["algorithm"]
     aggregator = ALGORITHM_MAP.get(algorithm)

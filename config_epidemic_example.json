@@ -1,0 +1,269 @@
+{
+  "scenario_title": "Epidemic Learning Gossip-based Example",
+  "scenario_description": "Epidemic Learning with gossip-based decentralized communication",
+  "deployment": "docker",
+  "federation": "EpidemicLearning",
+  "rounds": 15,
+  "topology": "Random",
+  "nodes": {
+    "0": {
+      "id": "0",
+      "ip": "192.168.50.2",
+      "port": "45001", 
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": true,
+      "neighbors": ["1", "2", "4", "5"],
+      "links": []
+    },
+    "1": {
+      "id": "1", 
+      "ip": "192.168.50.3",
+      "port": "45002",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["0", "2", "3", "6"],
+      "links": []
+    },
+    "2": {
+      "id": "2",
+      "ip": "192.168.50.4", 
+      "port": "45003",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["0", "1", "3", "7"],
+      "links": []
+    },
+    "3": {
+      "id": "3",
+      "ip": "192.168.50.5",
+      "port": "45004",
+      "role": "trainer_aggregator", 
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["1", "2", "4", "5"],
+      "links": []
+    },
+    "4": {
+      "id": "4",
+      "ip": "192.168.50.6",
+      "port": "45005",
+      "role": "trainer_aggregator", 
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["0", "3", "5", "6"],
+      "links": []
+    },
+    "5": {
+      "id": "5",
+      "ip": "192.168.50.7",
+      "port": "45006",
+      "role": "trainer_aggregator", 
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["0", "3", "4", "7"],
+      "links": []
+    },
+    "6": {
+      "id": "6",
+      "ip": "192.168.50.8",
+      "port": "45007",
+      "role": "trainer_aggregator", 
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["1", "4", "7"],
+      "links": []
+    },
+    "7": {
+      "id": "7",
+      "ip": "192.168.50.9",
+      "port": "45008",
+      "role": "trainer_aggregator", 
+      "malicious": false,
+      "proxy": false,
+      "start": false,
+      "neighbors": ["2", "5", "6"],
+      "links": []
+    }
+  },
+  "nodes_graph": {
+    "0": {
+      "id": "0",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": true
+    },
+    "1": {
+      "id": "1",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "2": {
+      "id": "2",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "3": {
+      "id": "3",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "4": {
+      "id": "4",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "5": {
+      "id": "5",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "6": {
+      "id": "6",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    },
+    "7": {
+      "id": "7",
+      "role": "trainer_aggregator",
+      "malicious": false,
+      "proxy": false,
+      "start": false
+    }
+  },
+  "n_nodes": 8,
+  "matrix": [
+    [0, 1, 1, 0, 1, 1, 0, 0],
+    [1, 0, 1, 1, 0, 0, 1, 0], 
+    [1, 1, 0, 1, 0, 0, 0, 1],
+    [0, 1, 1, 0, 1, 1, 0, 0],
+    [1, 0, 0, 1, 0, 1, 1, 0],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [0, 1, 0, 0, 1, 0, 0, 1],
+    [0, 0, 1, 0, 0, 1, 1, 0]
+  ],
+  "dataset": "MNIST",
+  "iid": false,
+  "partition_selection": "dirichlet",
+  "partition_parameter": 0.5,
+  "model": "MLP",
+  "agg_algorithm": "EpidemicLearning",
+  "logginglevel": true,
+  "report_status_data_queue": true,
+  "epochs": 1,
+  "attack_params": {
+    "attacks": "No Attack",
+    "poisoned_node_percent": 0,
+    "round_start_attack": 1,
+    "round_stop_attack": 10,
+    "attack_interval": 1
+  },
+  "reputation": {
+    "enabled": false,
+    "metrics": {
+      "model_similarity": {
+        "enabled": false,
+        "weight": 0
+      },
+      "num_messages": {
+        "enabled": false,
+        "weight": 0
+      },
+      "model_arrival_latency": {
+        "enabled": false,
+        "weight": 0
+      },
+      "fraction_parameters_changed": {
+        "enabled": false,
+        "weight": 0
+      }
+    },
+    "initial_reputation": 0.6,
+    "weighting_factor": "dynamic"
+  },
+  "mobility": false,
+  "network_simulation": false,
+  "mobility_type": "both",
+  "radius_federation": 500,
+  "scheme_mobility": "random",
+  "round_frequency": 1,
+  "mobile_participants_percent": 100,
+  "random_geo": false,
+  "latitude": 38.023522,
+  "longitude": -1.174389,
+  "with_sa": false,
+  "strict_topology": false,
+  "sad_candidate_selector": "Distance",
+  "sad_model_handler": "std",
+  "sar_arbitration_policy": "sap",
+  "sar_neighbor_policy": "Distance",
+  "sar_training": false,
+  "sar_training_policy": "Broad-Propagation Strategy",
+  "random_topology_probability": "0.5",
+  "with_trustworthiness": false,
+  "robustness_pillar": "20",
+  "resilience_to_attacks": "40",
+  "algorithm_robustness": "40",
+  "client_reliability": "20",
+  "privacy_pillar": "15",
+  "technique": "20",
+  "uncertainty": "60",
+  "indistinguishability": "20",
+  "fairness_pillar": "15",
+  "selection_fairness": "30",
+  "performance_fairness": "35",
+  "class_distribution": "35",
+  "explainability_pillar": "15",
+  "interpretability": "40",
+  "post_hoc_methods": "60",
+  "accountability_pillar": "10",
+  "factsheet_completeness": "100",
+  "architectural_soundness_pillar": "10",
+  "client_management": "50",
+  "optimization": "50",
+  "sustainability_pillar": "15",
+  "energy_source": "50",
+  "hardware_efficiency": "25",
+  "federation_complexity": "25",
+  "network_subnet": "172.20.0.0/16",
+  "network_gateway": "172.20.0.1",
+  "additional_participants": [],
+  "schema_additional_participants": "random",
+  "accelerator": "cpu",
+  "gpu_id": [],
+  "physical_ips": [],
+  "epidemic_config": {
+    "gossip_probability": 0.8,
+    "fanout": 3,
+    "epidemic_rounds": 3,
+    "sync_timeout": 120,
+    "adaptive_fanout": true,
+    "infection_threshold": 0.1,
+    "recovery_probability": 0.05,
+    "topology_awareness": true,
+    "weighted_averaging": true,
+    "age_decay_factor": 0.95
+  }
+}

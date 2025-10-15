@@ -106,14 +106,21 @@ class UpdateHandler(ABC):
         raise NotImplementedError
 
 
-# CHANGE: Imported DPSGDUpdateHandler, and added it to UPDATE_HANDLERS
+# CHANGE: Imported DPSGDUpdateHandler and EpidemicLearningUpdateHandler, and added it to UPDATE_HANDLERS
 def factory_update_handler(updt_handler, aggregator, addr) -> UpdateHandler:
     from nebula.core.aggregation.updatehandlers.cflupdatehandler import CFLUpdateHandler
     from nebula.core.aggregation.updatehandlers.dflupdatehandler import DFLUpdateHandler
     from nebula.core.aggregation.updatehandlers.sdflupdatehandler import SDFLUpdateHandler
     from nebula.core.aggregation.updatehandlers.dpsgupdatehandler import DPSGDUpdateHandler
+    from nebula.core.aggregation.updatehandlers.epidemiclearninghandler import EpidemicLearningUpdateHandler
 
-    UPDATE_HANDLERS = {"DFL": DFLUpdateHandler, "CFL": CFLUpdateHandler, "SDFL": SDFLUpdateHandler, "DPSGD": DPSGDUpdateHandler}
+    UPDATE_HANDLERS = {
+        "DFL": DFLUpdateHandler, 
+        "CFL": CFLUpdateHandler, 
+        "SDFL": SDFLUpdateHandler, 
+        "DPSGD": DPSGDUpdateHandler,
+        "EpidemicLearning": EpidemicLearningUpdateHandler
+    }
 
     update_handler = UPDATE_HANDLERS.get(updt_handler)
 
