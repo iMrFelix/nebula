@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, Any
 
 from nebula.addons.functions import print_msg_box
 
+# CHANGE: Add OrderedDict import for per-layer serialization
+from collections import OrderedDict
+
+
 if TYPE_CHECKING:
     from nebula.config.config import Config
     from nebula.core.aggregation.aggregator import Aggregator
@@ -37,6 +41,8 @@ class PropagationStrategy(ABC):
         """
         pass
 
+
+    # INFO: Does NOT need to be changed for per-layer sending because this function does not handle the actual serialization
     @abstractmethod
     def prepare_model_payload(self, node: str) -> tuple[Any, float] | None:
         """
@@ -336,21 +342,46 @@ class Propagator:
 
         model_params, weight = strategy.prepare_model_payload(None)
         if model_params:
+
+            # CHANGE: Serialized model is now a LIST of serialized layers! OrderedDict is the return type from deserialize_model_from_layers.
+            # TODO: Change code here to also get DSCP values when serializing.
             serialized_model = (
-                model_params if isinstance(model_params, bytes) else self.trainer.serialize_model(model_params)
+                model_params if isinstance(model_params, OrderedDict) else self.trainer.deserialize_model_from_layers(model_params)
             )
+
+            # serialized_model = (
+            #     model_params if isinstance(model_params, bytes) else self.trainer.serialize_model(model_params)
+            # )
         else:
             serialized_model = None
 
         current_round = await self.get_round()
         round_number = -1 if strategy_id == "initialization" else current_round
         parameters = serialized_model
-        message = self.cm.create_message("model", "", round_number, parameters, weight)
+        # CHANGE: Not a single protobuf "model" message, but one "modellayer" protobuf message FOR EACH LAYER!
+        # This callback will be executed N times (for N layer model). Each 
+        messages = [self.cm.create_message("modellayer", "", round_number, layer_index, parameters[layer_index], weight) for layer_index in range(len(parameters))]
+        # message = self.cm.create_message("model", "", round_number, parameters, weight)
+
         for neighbor_addr in eligible_neighbors:
+        
+            # CHANGE: No longer send monolithic model, and instead send each layer of model independently.
             logging.info(
-                f"Sending model to {neighbor_addr} with round {await self.get_round()}: weight={weight} | size={sys.getsizeof(serialized_model) / (1024** 2) if serialized_model is not None else 0} MB"
+                f"Sending model (per-layer) to {neighbor_addr} with round {await self.get_round()}: weight={weight} | size={sys.getsizeof(serialized_model) / (1024** 2) if serialized_model is not None else 0} MB"
             )
-            asyncio.create_task(self.cm.send_message(neighbor_addr, message, "model"))
+            for message in messages:
+                # CHANGE: Message type changed from "model" to "modellayer".
+                # TODO: Change hardcoded DSCP value to be dynamically computed.
+                asyncio.create_task(self.cm.send_message(neighbor_addr, 0b11101000 ,message, "modellayer"))
+            
+            # OLD CODE, has been replaced with per-layer sending
+            # logging.info(
+            #     f"Sending model to {neighbor_addr} with round {await self.get_round()}: weight={weight} | size={sys.getsizeof(serialized_model) / (1024** 2) if serialized_model is not None else 0} MB"
+            # )
+            # asyncio.create_task(self.cm.send_message(neighbor_addr, message, "model"))
+            
+            
+            # Was already commented out
             # asyncio.create_task(self.cm.send_model(neighbor_addr, round_number, serialized_model, weight))
 
         await asyncio.sleep(self.interval)
@@ -388,9 +419,12 @@ class Propagator:
         rounds = self.engine.total_rounds
 
         if model_params:
+
+            # TODO: Figure out what this function does and why is serializes the model...
             serialized_model = (
                 model_params if isinstance(model_params, bytes) else self.trainer.serialize_model(model_params)
             )
+
             return (serialized_model, rounds, await self.get_round())
 
         return None
