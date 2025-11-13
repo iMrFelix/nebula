@@ -318,6 +318,7 @@ class Reputation:
 
     async def setup(self):
         """Set up the reputation system by subscribing to relevant events."""
+        # TODO: Implement LayerUpdateReceivedEvent handler
         if self._enabled:
             await EventManager.get_instance().subscribe_node_event(RoundStartEvent, self.on_round_start)
             await EventManager.get_instance().subscribe_node_event(AggregationEvent, self.calculate_reputation)
