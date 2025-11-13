@@ -67,6 +67,16 @@ message FederationMessage {
   int32 round = 3;                // Identifies the communication round, particularly useful in iterative processes.
 }
 
+// CHANGE: Added new message for sending updates on a per-layer basis.
+message ModelLayerMessage {
+  bytes parameters = 1; // serialized bytes for this single layer
+  int32 layer_index = 2; // index in ordering
+  int32 total_layers = 3; // total number of layers in update
+  int64 weight = 4;       // Significance or weighting factor of this model update, e.g., based on sample size.
+  int32 round = 5;        // Identifies the communication round, particularly useful in iterative processes.
+}
+
+
 message ModelMessage {
   bytes parameters = 1;       // Serialized form of the model parameters.
   int64 weight = 2;           // Significance or weighting factor of this model update, e.g., based on sample size.
