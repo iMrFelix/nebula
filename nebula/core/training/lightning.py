@@ -255,6 +255,40 @@ class Lightning:
     def get_current_loss(self):
         return self.model.get_loss()
 
+    # CHANGE: Added code to serialize an entire model layer-by-layer.
+    def serialize_model_layers(self, model) -> list[tuple[str, bytes]]:
+        """
+        Serialize each entry of model.state_dict() individually.
+        Returns a list of (parameter_name, bytes) in the state_dict order.
+        """
+        layers = []
+        state = model.state_dict()  # OrderedDict
+        for name, tensor in state.items():
+            # Ensure CPU + detached + contiguous for safety
+            t = tensor.detach().cpu().contiguous()
+            buf = io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode="wb") as f:
+                torch.save(t, f, pickle_protocol=pickle.HIGHEST_PROTOCOL)
+            layers.append((name, buf.getvalue()))
+            buf.close()
+        return layers
+
+    # CHANGE: Added code to deserialize an entire model layer-by-layer.
+    def deserialize_model_from_layers(self, layers: list[tuple[str, bytes]]) -> OrderedDict:
+        """
+        Reconstruct an OrderedDict mapping parameter_name -> Tensor from serialized layers.
+        `layers` should be an iterable of (name, bytes).
+        Returns an OrderedDict ready to pass to model.load_state_dict() or set_model_parameters().
+        """
+        od = OrderedDict()
+        for name, blob in layers:
+            buf = io.BytesIO(blob)
+            with gzip.GzipFile(fileobj=buf, mode="rb") as f:
+                tensor = torch.load(f, map_location="cpu")
+            od[name] = tensor
+            buf.close()
+        return od
+
     def serialize_model(self, model):
         # From https://pytorch.org/docs/stable/notes/serialization.html
         try:
