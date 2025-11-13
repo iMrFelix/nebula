@@ -292,7 +292,51 @@ class ModelPropagationEvent(NodeEvent):
 
     async def is_concurrent(self) -> bool:
         return False    
-            
+
+# CHANGE: Added new event for processing layer update messages.
+# NOTE: This event does NOT immediately trigger deserialization and processing of the whole model.
+#       Instead, it ONLY causes that single layer to be deserialized (by the function which subscribed to this event, implemented in each aggregation algorithm's updatehandler)
+#       This function should (and hopefully does) check whether all layer updates have been received, and if so,
+#       it either fires another event which triggers the full reconstruction, or it does the reconstruction itself.
+class LayerUpdateReceivedEvent(NodeEvent):
+    def __init__(self, decoded_layer, weight, source, layer_index, round, local=False):
+        """
+        Initializes a LayerUpdateReceivedEvent.
+
+        Args:
+            decoded_layer (Any): The received model layer update (still serialized).
+            weight (float): The weight associated with the received update.
+            source (str): The identifier or address of the node that sent the update.
+            layer_index (int): Layer index contained in this protobuf message.
+            round (int): The round number in which the update was received.
+            local (bool): Local update
+        """
+        self._model = decoded_layer
+        self._weight = weight
+        self._source = source
+        self._layer_index = layer_index
+        self._round = round
+        self._local = local
+
+    def __str__(self):
+        return f"Layer Update received from source: {self._source}, layer_index {self._layer_index}, round: {self._round}"
+
+    async def get_event_data(self) -> tuple[object, int, str, int, bool]:
+        """
+        Retrieves the event data.
+
+        Returns:
+            tuple[Any, float, str, int, bool]: A tuple containing:
+                - The received model update.
+                - The weight associated with the update.
+                - The source node identifier.
+                - The round number of the update.
+                - If the update is local
+        """
+        return (self._model, self._weight, self._source, self._round, self._local)
+
+    async def is_concurrent(self) -> bool:
+        return False
 
 
 class UpdateReceivedEvent(NodeEvent):
