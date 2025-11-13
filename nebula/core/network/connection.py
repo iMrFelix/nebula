@@ -3,6 +3,7 @@ import bz2
 import json
 import logging
 import lzma
+import socket as pysocket
 import time
 import uuid
 import zlib
@@ -99,6 +100,10 @@ class Connection:
         self._last_activity = time.time()
         self._activity_lock = Locker(name="activity_lock", async_lock=True)
         self._activity_task = None
+
+        #  CHANGE: Added lock to ensure the process of sending chunks (i.e., corking, sending, uncorking) is atomic.
+        self._send_lock = Locker(name="send_lock", async_lock=True)
+
 
         self.EOT_CHAR = b"\x00\x00\x00\x04"
         self.COMPRESSION_CHAR = b"\x00\x00\x00\x01"
@@ -338,6 +343,7 @@ class Connection:
         pb: bool = True,
         encoding_type: str = "utf-8",
         is_compressed: bool = False,
+        dscp: int | None = None,
     ) -> None:
         """
         Sends data over the active connection.
@@ -366,6 +372,8 @@ class Connection:
         try:
             message_id = uuid.uuid4().bytes
             data_prefix, encoded_data = self._prepare_data(data, pb, encoding_type)
+
+            socket_state = None
 
             if is_compressed:
                 encoded_data = await asyncio.to_thread(self._compress, encoded_data, self.compression)
@@ -433,7 +441,7 @@ class Connection:
             logging.error(f"Unsupported compression method: {compression}")
             return None
 
-    async def _send_chunks(self, message_id: bytes, data: bytes) -> None:
+    async def _send_chunks(self, message_id: bytes, data: bytes, dscp : int) -> None:
         """
         Sends the encoded data over the connection in fixed-size chunks.
 
@@ -458,13 +466,61 @@ class Connection:
             chunk_size_bytes = len(chunk).to_bytes(4, "big")
             chunk_with_header = header + chunk_size_bytes + chunk + self.EOT_CHAR
 
-            self.writer.write(chunk_with_header)
-            await self.writer.drain()
+            # CHANGE: Critical section is sending the chunk with a specific DSCP value => use send_lock to protect this section!
+            #         AFAIK, this async with structure as a hidden "finally" which releases the lock again.
+            async with self._send_lock:
+                
+                sock = self.writer.get_extra_info("socket") if dscp is not None else None
+                
+                # If DSCP parameter passed into function, CORK the socket.
+                # This corking and uncorking is NECESSARY to ensure the socket (abstracted by writer) sends out the packet BEFORE resetting the DSCP value.
+                if dscp is not None and sock is not None:
+                    # Cork BEFORE applying DSCP
+                    sock.setsockopt(sock.IPPROTO_TCP, sock.TCP_CORK, 1)
+                    socket_state = self._apply_dscp(sock, dscp)
+
+                # Write to writer's buffer, and drain that buffer into TCP socket's send buffer.
+                self.writer.write(chunk_with_header)
+                await self.writer.drain()
+
+                if dscp is not None and sock is not None:
+                    # Uncork AFTER sending but BEFORE resetting socket's DSCP to FORCE transmission with correct DSCP.
+                    sock.setsockopt(sock.IPPROTO_TCP, sock.TCP_CORK, 0)
+                    # Once this call has returned, we know the packet has been sent out. NOW it's safe to restore DSCP after uncork forces transmission.
+                    self._restore_dscp(sock, socket_state)
 
             # logging.debug(f"Sent message {message_id.hex()} | chunk {chunk_index+1}/{num_chunks} | size: {len(chunk)} bytes")
 
     def _calculate_chunk_size(self, data_size: int) -> int:
         return self.BUFFER_SIZE
+
+    def _apply_dscp(self, sock, dscp: int):
+        """Set DSCP bits on the underlying socket, returning previous state for restoration."""
+        try:
+            dscp_value = (int(dscp) & 0x3F) << 2
+            if sock.family == pysocket.AF_INET:
+                previous = sock.getsockopt(pysocket.IPPROTO_IP, pysocket.IP_TOS)
+                sock.setsockopt(pysocket.IPPROTO_IP, pysocket.IP_TOS, dscp_value)
+                return ("ipv4", previous)
+            if sock.family == pysocket.AF_INET6:
+                previous = sock.getsockopt(pysocket.IPPROTO_IPV6, pysocket.IPV6_TCLASS)
+                sock.setsockopt(pysocket.IPPROTO_IPV6, pysocket.IPV6_TCLASS, dscp_value)
+                return ("ipv6", previous)
+        except OSError as exc:
+            logging.debug(f"Unable to set DSCP {dscp} for {self.addr}: {exc}")
+        return None
+
+    def _restore_dscp(self, sock, socket_state):
+        if not socket_state:
+            return
+        proto, value = socket_state
+        try:
+            if proto == "ipv4":
+                sock.setsockopt(pysocket.IPPROTO_IP, pysocket.IP_TOS, value)
+            elif proto == "ipv6":
+                sock.setsockopt(pysocket.IPPROTO_IPV6, pysocket.IPV6_TCLASS, value)
+        except OSError as exc:
+            logging.debug(f"Unable to restore DSCP for {self.addr}: {exc}")
 
     async def handle_incoming_message(self) -> None:
         """
