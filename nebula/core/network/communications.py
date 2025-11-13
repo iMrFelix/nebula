@@ -854,7 +854,8 @@ class CommunicationsManager:
             if interval > 0:
                 await asyncio.sleep(interval)
 
-    async def send_message(self, dest_addr, message, message_type=""):
+    # CHANGE: DSCP added as parameter
+    async def send_message(self, dest_addr, dscp : int, message, message_type=""):
         """
         Sends a message to a specific destination address, with optional compression for large messages.
 
@@ -868,7 +869,8 @@ class CommunicationsManager:
             try:
                 if dest_addr in self.connections:
                     conn = self.connections[dest_addr]
-                    await conn.send(data=message)
+                    # CHANGE: Pass DSCP value into connection's send function
+                    await conn.send(dscp, data=message)
             except Exception as e:
                 logging.exception(f"❗️  Cannot send message {message} to {dest_addr}. Error: {e!s}")
                 await self.disconnect(dest_addr, mutual_disconnection=False)
@@ -879,7 +881,8 @@ class CommunicationsManager:
                     if conn is None:
                         logging.info(f"❗️  Connection with {dest_addr} not found")
                         return
-                    await conn.send(data=message, is_compressed=True)
+                    # CHANGE: Pass DSCP value into connection's send function
+                    await conn.send(dscp, data=message, is_compressed=True)
                 except Exception as e:
                     logging.exception(f"❗️  Cannot send model to {dest_addr}: {e!s}")
                     await self.disconnect(dest_addr, mutual_disconnection=False)
