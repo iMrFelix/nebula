@@ -20,6 +20,7 @@ from nebula.core.nebulaevents import (
     RoundEndEvent,
     RoundStartEvent,
     UpdateNeighborEvent,
+    LayerUpdateReceivedEvent,
     UpdateReceivedEvent,
     ExperimentFinishEvent,
     ModelPropagationEvent,
@@ -266,6 +267,21 @@ class Engine:
                 pass
         except RuntimeError:
             pass
+
+
+    async def model_layer_update_callback(self, source, message):
+        logging.info(f"🤖  handle_model_layer_message | Received model layer update from {source} with layer {message.layer_index} and round {message.round}")
+        if not self.get_federation_ready_lock().locked() and len(await self.get_federation_nodes()) == 0:
+            logging.info("🤖  handle_model_layer_message | There are no defined federation nodes")
+            return
+        # TODO: Implement deserialization logic. It works as follows:
+        #       Keep a data structure that stores all incoming layers (separately for each sender)
+        #       Once all layers have been received, you deserialize them, recombine them, and then hand them off to whatever function needs them afterwards
+        #       (look at how model_update_callback does it).
+        decoded_layer = self.trainer.deserialize_model_from_layers(message.parameters)
+        layer_updt_received_event = LayerUpdateReceivedEvent(decoded_layer, message.weight, source, message.round)
+        await EventManager.get_instance().publish_node_event(layer_updt_received_event)
+
 
     async def model_update_callback(self, source, message):
         logging.info(f"🤖  handle_model_message | Received model update from {source} with round {message.round}")
