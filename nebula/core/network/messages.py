@@ -80,6 +80,12 @@ class MessagesManager:
                     "round": None,
                 },
             },
+            "modellayer": {
+                "parameters": ["round", "layer_index", "parameters", "weight"],
+                "defaults": {
+                    "weight": 1,
+                },
+            },
             "model": {
                 "parameters": ["round", "parameters", "weight"],
                 "defaults": {
