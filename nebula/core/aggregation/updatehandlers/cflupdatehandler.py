@@ -90,6 +90,7 @@ class CFLUpdateHandler(UpdateHandler):
         """
         self._role = config
         await EventManager.get_instance().subscribe_node_event(UpdateNeighborEvent, self.notify_federation_update)
+        # TODO: Implement LayerUpdateReceivedEvent handler
         await EventManager.get_instance().subscribe_node_event(UpdateReceivedEvent, self.storage_update)
 
     async def round_expected_updates(self, federation_nodes: set):

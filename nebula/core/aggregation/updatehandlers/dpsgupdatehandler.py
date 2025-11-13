@@ -98,6 +98,7 @@ class DPSGDUpdateHandler(UpdateHandler):
         Subscribe to update-related events from the event manager.
         """
         await EventManager.get_instance().subscribe_node_event(UpdateNeighborEvent, self.notify_neighbor_update)
+        # TODO: Implement LayerUpdateReceivedEvent handler
         await EventManager.get_instance().subscribe_node_event(UpdateReceivedEvent, self.storage_update)
         logging.info("[D-PSGD UpdateHandler] Event subscriptions initialized")
 

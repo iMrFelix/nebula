@@ -80,6 +80,7 @@ class SDFLUpdateHandler(UpdateHandler):
         Subscribe to update-related events from the event manager.
         """
         await EventManager.get_instance().subscribe_node_event(UpdateNeighborEvent, self.notify_federation_update)
+        # TODO: Implement LayerUpdateReceivedEvent handler
         await EventManager.get_instance().subscribe_node_event(UpdateReceivedEvent, self.storage_update)
 
     async def round_expected_updates(self, federation_nodes: set):
