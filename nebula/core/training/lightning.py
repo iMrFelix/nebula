@@ -325,7 +325,9 @@ class Lightning:
         except Exception as e:
             raise ParameterSettingError("Error setting parameters") from e
 
-    def get_model_parameters(self, bytes=False, initialize=False):
+    # CHANGE: Added per_layer parameter
+    def get_model_parameters(self, bytes=False, initialize=False, per_layer : bool = False):
+        logging.info("DSCP, 2-4: INFO: get_model_parameters called: bytes={bytes}, initialize={initialize}, per_layer={per_layer}")
         if bytes:
             return self.serialize_model(self.model.state_dict())
         return self.model.state_dict()

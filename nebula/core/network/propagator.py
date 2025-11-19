@@ -97,7 +97,7 @@ class InitialModelPropagation(PropagationStrategy):
         """
         return node not in self.engine.cm.get_ready_connections()
 
-    def prepare_model_payload(self, node: str) -> tuple[Any, float] | None:
+    def prepare_model_payload(self, node: str, per_layer : bool | None = False) -> tuple[Any, float] | None:
         """
         Prepare the initial model parameters and default weight.
 
@@ -156,7 +156,7 @@ class StableModelPropagation(PropagationStrategy):
             self.engine.cm.connections[node].get_federated_round() < await self.get_round()
         )
 
-    def prepare_model_payload(self, node: str) -> tuple[Any, float] | None:
+    def prepare_model_payload(self, node: str, per_layer : bool | None = False) -> tuple[Any, float] | None:
         """
         Prepare the current model parameters and their corresponding weight.
 
@@ -166,7 +166,8 @@ class StableModelPropagation(PropagationStrategy):
         Returns:
             tuple[Any, float]: The model parameters and model weight for propagation.
         """
-        return self.trainer.get_model_parameters(), self.trainer.get_model_weight()
+        return self.trainer.get_model_parameters(per_layer=per_layer), self.trainer.get_model_weight()
+    
 
 
 class Propagator:
@@ -340,16 +341,16 @@ class Propagator:
             logging.info("Exiting propagation due to repeated statuses.")
             return False
 
+        # CHANGE: Serialized model is now a LIST of serialized layers! OrderedDict is the return type from deserialize_model_from_layers.
+        # TODO: Change code here to also get DSCP values when serializing.
+        logging.info("DSCP, 2: Calling function to serialize every layer!")
         model_params, weight = strategy.prepare_model_payload(None)
         if model_params:
 
-            # CHANGE: Serialized model is now a LIST of serialized layers! OrderedDict is the return type from deserialize_model_from_layers.
-            # TODO: Change code here to also get DSCP values when serializing.
-            
-            logging.info("DSCP, 2: Calling function to serialize every layer!")
-            serialized_model = (
-                model_params if isinstance(model_params, OrderedDict) else self.trainer.serialize_model_layers(model_params)
-            )
+            if not isinstance(model_params, list[tuple[str, bytes]]):
+                logging.info(f"DSCP, 2-4: INFO: Special case, type(model_params) == {type(model_params)} (normally is type list[tuple[str, bytes]])")
+
+                serialized_model = self.trainer.serialize_model_layers(model_params)
             logging.info(f"DSCP, 5: Sserialized model layer by layer! Result: {model_params}")
 
 
