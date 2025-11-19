@@ -347,7 +347,7 @@ class Propagator:
         model_params, weight = strategy.prepare_model_payload(None)
         if model_params:
 
-            if not isinstance(model_params, list[tuple[str, bytes]]):
+            if not isinstance(model_params, list):
                 logging.info(f"DSCP, 2-4: INFO: Special case, type(model_params) == {type(model_params)} (normally is type list[tuple[str, bytes]])")
 
                 serialized_model = self.trainer.serialize_model_layers(model_params)
