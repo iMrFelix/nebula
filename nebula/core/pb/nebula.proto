@@ -26,7 +26,7 @@ message Wrapper {
     DiscoverMessage discover_message = 9;
     OfferMessage offer_message = 10;
     LinkMessage link_message = 11;
-    ModelLayerMessage model_layer_message = 12;
+    ModellayerMessage modellayer_message = 12;
   }
 }
 
@@ -69,7 +69,7 @@ message FederationMessage {
 }
 
 // CHANGE: Added new message for sending updates on a per-layer basis.
-message ModelLayerMessage {
+message ModellayerMessage {
   bytes parameters = 1; // serialized bytes for this single layer
   int32 layer_index = 2; // index in ordering
   int32 total_layers = 3; // total number of layers in update

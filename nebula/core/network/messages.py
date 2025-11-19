@@ -249,11 +249,7 @@ class MessagesManager:
         default_values: dict = message_template.get("defaults", {})
 
         # Dynamically retrieve the class for the protobuf message (e.g., OfferMessage)
-        # Special case for "modellayer" -> "ModelLayerMessage" (capital L)
-        if message_type == "modellayer":
-            class_name = "ModelLayerMessage"
-        else:
-            class_name = message_type.capitalize() + "Message"
+        class_name = message_type.capitalize() + "Message"
         message_class = getattr(nebula_pb2, class_name, None)
 
         if message_class is None:
