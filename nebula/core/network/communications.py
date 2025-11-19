@@ -872,7 +872,7 @@ class CommunicationsManager:
                     # CHANGE: Pass DSCP value into connection's send function
     
                     logging.info(f"DSCP, 9: Sending message uncompressed with DSCP={dscp}")
-                    await conn.send(dscp, data=message)
+                    await conn.send(data=message, dscp=dscp)
             except Exception as e:
                 logging.exception(f"❗️  Cannot send message {message} to {dest_addr}. Error: {e!s}")
                 await self.disconnect(dest_addr, mutual_disconnection=False)
@@ -884,7 +884,7 @@ class CommunicationsManager:
                         logging.info(f"❗️  Connection with {dest_addr} not found")
                         return
                     # CHANGE: Pass DSCP value into connection's send function
-                    await conn.send(dscp, data=message, is_compressed=True)
+                    await conn.send(data=message, is_compressed=True, dscp=dscp)
                 except Exception as e:
                     logging.exception(f"❗️  Cannot send model to {dest_addr}: {e!s}")
                     await self.disconnect(dest_addr, mutual_disconnection=False)
