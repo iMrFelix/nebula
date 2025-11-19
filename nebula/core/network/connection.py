@@ -384,7 +384,7 @@ class Connection:
                 data_to_send = data_prefix + encoded_data
 
             await self._update_activity()
-            await self._send_chunks(message_id, data_to_send)
+            await self._send_chunks(message_id, data_to_send, dscp)
         except Exception as e:
             logging.exception(f"Error sending data: {e}")
             if self.direct and not await self.cm.learning_finished():
@@ -441,7 +441,7 @@ class Connection:
             logging.error(f"Unsupported compression method: {compression}")
             return None
 
-    async def _send_chunks(self, message_id: bytes, data: bytes, dscp : int) -> None:
+    async def _send_chunks(self, message_id: bytes, data: bytes, dscp : int|None = None) -> None:
         """
         Sends the encoded data over the connection in fixed-size chunks.
 
