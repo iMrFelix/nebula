@@ -854,8 +854,8 @@ class CommunicationsManager:
             if interval > 0:
                 await asyncio.sleep(interval)
 
-    # CHANGE: DSCP added as parameter
-    async def send_message(self, dest_addr, dscp : int, message, message_type=""):
+    # CHANGE: DSCP paremeter not has a default value of "None" if no DSCP is to be added.
+    async def send_message(self, dest_addr, message, dscp : int | None = None, message_type=""):
         """
         Sends a message to a specific destination address, with optional compression for large messages.
 
