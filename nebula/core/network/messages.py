@@ -142,6 +142,9 @@ class MessagesManager:
 
             # Extract the active message from the oneof field
             message_type = message_wrapper.WhichOneof("message")
+            logging.debug(f"📥  handle_incoming_message | DEBUG: Message type={message_type}")
+
+
             msg_name = message_type.split("_")[0]
             if not message_type:
                 logging.warning("Received message with no active field in the 'oneof'")
