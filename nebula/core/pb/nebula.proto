@@ -26,6 +26,7 @@ message Wrapper {
     DiscoverMessage discover_message = 9;
     OfferMessage offer_message = 10;
     LinkMessage link_message = 11;
+    ModelLayerMessage model_layer_message = 12;
   }
 }
 
