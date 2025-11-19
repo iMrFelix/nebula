@@ -258,12 +258,13 @@ class Lightning:
     # CHANGE: Added code to serialize an entire model layer-by-layer.
     def serialize_model_layers(self, model) -> list[tuple[str, bytes]]:
         """
+        NOTE: MODEL IS ALREADY THE STATE_DICT, SINCE IT IS THE OUTPUT OF get_model_parameters!
         Serialize each entry of model.state_dict() individually.
         Returns a list of (parameter_name, bytes) in the state_dict order.
         """
         logging.info("DSCP, 3: Starting to serialize layers!")
         layers = []
-        state = model.state_dict()  # OrderedDict
+        state = model # The model is ALREADY the OrderedDict from 
         i = 0
         for name, tensor in state.items():
             # Ensure CPU + detached + contiguous for safety
@@ -325,7 +326,7 @@ class Lightning:
         except Exception as e:
             raise ParameterSettingError("Error setting parameters") from e
 
-    # CHANGE: Added per_layer parameter
+    # CHANGE: Added per_layer parameter. NOTE: This ALREADY RETURNS THE STATE_DICT!!!!
     def get_model_parameters(self, bytes=False, initialize=False, per_layer : bool = False):
         logging.info(f"DSCP, 2-4: INFO: get_model_parameters called: bytes={bytes}, initialize={initialize}, per_layer={per_layer}")
         if bytes:

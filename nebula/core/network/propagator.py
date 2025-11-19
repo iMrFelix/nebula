@@ -344,13 +344,17 @@ class Propagator:
         # CHANGE: Serialized model is now a LIST of serialized layers! OrderedDict is the return type from deserialize_model_from_layers.
         # TODO: Change code here to also get DSCP values when serializing.
         logging.info("DSCP, 2: Calling function to serialize every layer!")
-        model_params, weight = strategy.prepare_model_payload(None)
+        model_params, weight = strategy.prepare_model_payload(None,per_layer = True)
         if model_params:
 
             if not isinstance(model_params, list):
-                logging.info(f"DSCP, 2-4: INFO: Special case, type(model_params) == {type(model_params)} (normally is type list[tuple[str, bytes]])")
+                if isinstance(model_params, OrderedDict):
+                    # Is this really a "special case?"
+                    logging.info(f"DSCP, 2-4: INFO: Special case, type(model_params) == {type(model_params)} => SHOULD be result of get_model_parameters")
+                    serialized_model = self.trainer.serialize_model_layers(model_params)
+                else:
+                    logging.info(f"DSCP, 2-4: INFO: Special case (unexpected), type(model_params) == {type(model_params)} WHAT IS THIS?! INVESTIGATE!")
 
-                serialized_model = self.trainer.serialize_model_layers(model_params)
             logging.info(f"DSCP, 5: Sserialized model layer by layer! Result: {model_params}")
 
 
