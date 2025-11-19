@@ -355,7 +355,7 @@ class Propagator:
                 else:
                     logging.info(f"DSCP, 2-4: INFO: Special case (unexpected), type(model_params) == {type(model_params)} WHAT IS THIS?! INVESTIGATE!")
 
-            logging.info(f"DSCP, 5: Sserialized model layer by layer! Result: {model_params}")
+            logging.info(f"DSCP, 5: Sserialized model layer by layer! Result: {serialized_model}")
 
 
             # serialized_model = (
