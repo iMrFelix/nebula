@@ -112,7 +112,9 @@ class MessagesManager:
         """
         message_events = {}
         for message_name in self._message_templates:
-            if message_name != "model":
+            # CHANGE: Treat modellayer message differentlly to "regular" messages and "model" messages.
+            # See handle_modellayer_message in communications.py
+            if message_name != "model" and message_name != "modellayer":
                 message_events[message_name] = get_actions_names(message_name)
         return message_events
 
