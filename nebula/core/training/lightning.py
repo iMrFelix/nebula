@@ -272,6 +272,7 @@ class Lightning:
             buf = io.BytesIO()
             with gzip.GzipFile(fileobj=buf, mode="wb") as f:
                 torch.save(t, f, pickle_protocol=pickle.HIGHEST_PROTOCOL)
+            # NOTE: The "name" field is currently unused.
             layers.append((name, buf.getvalue()))
             buf.close()
             logging.info(f"DSCP, 4: Serialized layer {i}!")

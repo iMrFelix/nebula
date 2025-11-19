@@ -372,8 +372,9 @@ class Propagator:
         # This callback will be executed N times (once for each layer for an N layer model).
         
         logging.info("DSCP, 6: Creating a a separate protobuf message for each layer!")
-
-        messages = [self.cm.create_message("modellayer", "", round_number, layer_index, parameters[layer_index], weight) for layer_index in range(len(parameters))]
+        # NOTE: parameters = [(layer_name_1, layer_bytes_1), ..., (layer_name_N, layer_bytes_N)].
+        #       We do not include the layer name in the protobuf message, so we only take the second index of the tuple parameters.
+        messages = [self.cm.create_message("modellayer", "", round_number, layer_index, parameters[layer_index][1], weight) for layer_index in range(len(parameters))]
         # message = self.cm.create_message("model", "", round_number, parameters, weight)
 
         f"DSCP, 7: Iterating over all eligible neighbors and sending each modellayer protbuf message separately."
