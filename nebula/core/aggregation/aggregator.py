@@ -28,6 +28,7 @@ class Aggregator(ABC):
         self._aggregation_waiting_skip = asyncio.Event()
 
         scenario = self.config.participant["scenario_args"]["federation"]
+        logging.info(f"DEBUG: Federation scenario={scenario}")
         self._update_storage = factory_update_handler(scenario, self, self._addr)
 
     def __str__(self):
