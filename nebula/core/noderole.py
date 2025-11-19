@@ -246,9 +246,10 @@ class TrainerAggregatorRoleBehavior(RoleBehavior):
             self._engine.trainer.get_model_parameters(), self._engine.trainer.get_model_weight(), self._engine.addr, self._engine.round
         )
         await EventManager.get_instance().publish_node_event(self_update_event)
-
         mpe = ModelPropagationEvent(await self._engine.cm.get_addrs_current_connections(only_direct=True, myself=False), "stable")
+        logging.info(f"DSCP, 1: creating new ModelPropagationEvent!")
         await EventManager.get_instance().publish_node_event(mpe)
+
         
         await self._engine._waiting_model_updates()
         

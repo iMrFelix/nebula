@@ -261,8 +261,10 @@ class Lightning:
         Serialize each entry of model.state_dict() individually.
         Returns a list of (parameter_name, bytes) in the state_dict order.
         """
+        logging.info("DSCP, 3: Starting to serialize layers!")
         layers = []
         state = model.state_dict()  # OrderedDict
+        i = 0
         for name, tensor in state.items():
             # Ensure CPU + detached + contiguous for safety
             t = tensor.detach().cpu().contiguous()
@@ -271,6 +273,9 @@ class Lightning:
                 torch.save(t, f, pickle_protocol=pickle.HIGHEST_PROTOCOL)
             layers.append((name, buf.getvalue()))
             buf.close()
+            logging.info(f"DSCP, 4: Serialized layer {i}!")
+            i += 1
+
         return layers
 
     # CHANGE: Added code to deserialize an entire model layer-by-layer.

@@ -345,9 +345,13 @@ class Propagator:
 
             # CHANGE: Serialized model is now a LIST of serialized layers! OrderedDict is the return type from deserialize_model_from_layers.
             # TODO: Change code here to also get DSCP values when serializing.
+            
+            logging.info("DSCP, 2: Calling function to serialize every layer!")
             serialized_model = (
-                model_params if isinstance(model_params, OrderedDict) else self.trainer.deserialize_model_from_layers(model_params)
+                model_params if isinstance(model_params, OrderedDict) else self.trainer.serialize_model_layers(model_params)
             )
+            logging.info(f"DSCP, 5: Sserialized model layer by layer! Result: {model_params}")
+
 
             # serialized_model = (
             #     model_params if isinstance(model_params, bytes) else self.trainer.serialize_model(model_params)
@@ -358,16 +362,22 @@ class Propagator:
         current_round = await self.get_round()
         round_number = -1 if strategy_id == "initialization" else current_round
         parameters = serialized_model
+
         # CHANGE: Not a single protobuf "model" message, but one "modellayer" protobuf message FOR EACH LAYER!
-        # This callback will be executed N times (for N layer model). Each 
+        # This callback will be executed N times (once for each layer for an N layer model).
+        
+        logging.info("DSCP, 6: Creating a a separate protobuf message for each layer!")
+
         messages = [self.cm.create_message("modellayer", "", round_number, layer_index, parameters[layer_index], weight) for layer_index in range(len(parameters))]
         # message = self.cm.create_message("model", "", round_number, parameters, weight)
+
+        f"DSCP, 7: Iterating over all eligible neighbors and sending each modellayer protbuf message separately."
 
         for neighbor_addr in eligible_neighbors:
         
             # CHANGE: No longer send monolithic model, and instead send each layer of model independently.
             logging.info(
-                f"Sending model (per-layer) to {neighbor_addr} with round {await self.get_round()}: weight={weight} | size={sys.getsizeof(serialized_model) / (1024** 2) if serialized_model is not None else 0} MB"
+                f"DSCP, 8: Sending model (per-layer) to {neighbor_addr} with round {await self.get_round()}: weight={weight} | size={sys.getsizeof(serialized_model) / (1024** 2) if serialized_model is not None else 0} MB"
             )
             for message in messages:
                 # CHANGE: Message type changed from "model" to "modellayer".

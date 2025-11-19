@@ -456,6 +456,9 @@ class Connection:
         chunk_size = self._calculate_chunk_size(len(data))
         num_chunks = (len(data) + chunk_size - 1) // chunk_size
 
+
+        logging.info(f"DSCP, 10: Sending a modellayer message out in {num_chunks} chunks.")
+
         for chunk_index in range(num_chunks):
             start = chunk_index * chunk_size
             end = min(start + chunk_size, len(data))
@@ -468,6 +471,9 @@ class Connection:
 
             # CHANGE: Critical section is sending the chunk with a specific DSCP value => use send_lock to protect this section!
             #         AFAIK, this async with structure as a hidden "finally" which releases the lock again.
+    
+            logging.info(f"DSCP, 11: Just before entering critical section.")
+
             async with self._send_lock:
                 
                 sock = self.writer.get_extra_info("socket") if dscp is not None else None

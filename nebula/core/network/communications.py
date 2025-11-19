@@ -870,6 +870,8 @@ class CommunicationsManager:
                 if dest_addr in self.connections:
                     conn = self.connections[dest_addr]
                     # CHANGE: Pass DSCP value into connection's send function
+    
+                    logging.info(f"DSCP, 9: Sending message uncompressed with DSCP={dscp}")
                     await conn.send(dscp, data=message)
             except Exception as e:
                 logging.exception(f"❗️  Cannot send message {message} to {dest_addr}. Error: {e!s}")
