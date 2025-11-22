@@ -482,7 +482,7 @@ class Connection:
                 # This corking and uncorking is NECESSARY to ensure the socket (abstracted by writer) sends out the packet BEFORE resetting the DSCP value.
                 if dscp is not None and sock is not None:
                     # Cork BEFORE applying DSCP
-                    sock.setsockopt(sock.IPPROTO_TCP, sock.TCP_CORK, 1)
+                    sock.setsockopt(pysocket.IPPROTO_TCP, pysocket.TCP_CORK, 1)
                     socket_state = self._apply_dscp(sock, dscp)
 
                 # Write to writer's buffer, and drain that buffer into TCP socket's send buffer.
@@ -491,7 +491,7 @@ class Connection:
 
                 if dscp is not None and sock is not None:
                     # Uncork AFTER sending but BEFORE resetting socket's DSCP to FORCE transmission with correct DSCP.
-                    sock.setsockopt(sock.IPPROTO_TCP, sock.TCP_CORK, 0)
+                    sock.setsockopt(pysocket.IPPROTO_TCP, pysocket.TCP_CORK, 0)
                     # Once this call has returned, we know the packet has been sent out. NOW it's safe to restore DSCP after uncork forces transmission.
                     self._restore_dscp(sock, socket_state)
 
