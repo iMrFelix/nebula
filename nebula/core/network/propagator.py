@@ -390,8 +390,8 @@ class Propagator:
                 # CHANGE: Message type changed from "model" to "modellayer".
                 # TODO: Change hardcoded DSCP value to be dynamically computed.
                 # asyncio.create_task(self.cm.send_message(neighbor_addr ,message, 0b11101000, "modellayer"))
-                # CHANGE: Changed from our custom DSCP value 0b11101000 to a standard DSCP value to see if the changes reflect in the TCPDump.
-                asyncio.create_task(self.cm.send_message(neighbor_addr ,message, 26 << 2, "modellayer"))
+                # CHANGE: Changed from our custom DSCP value 0b11101000 to a DSCP value in the range 0-63 (have 6 bits available) to see if the changes reflect in the TCPDump.
+                asyncio.create_task(self.cm.send_message(neighbor_addr ,message, 5, "modellayer"))
             
             # OLD CODE, has been replaced with per-layer sending
             # logging.info(
