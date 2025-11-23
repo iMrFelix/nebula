@@ -86,7 +86,7 @@ class Aggregator(ABC):
         self._federation_nodes = federation_nodes
         self._pending_models_to_aggregate.clear()
 
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _aggregation_done_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _aggregation_done_lock.")
         await self._aggregation_done_lock.acquire_async(
             timeout=self.config.participant["aggregator_args"]["aggregation_timeout"]
         )
@@ -119,7 +119,7 @@ class Aggregator(ABC):
 
             lock_task = asyncio.create_task(self._aggregation_done_lock.acquire_async(timeout=timeout))
             skip_task = asyncio.create_task(self._aggregation_waiting_skip.wait())
-            logging.log("DEBUG, LOCK: Just before calling await on TWO asyncio tasks to acquire the TWO LOCKS (whichever it acquires first): _aggregation_done_lock, _aggregation_waiting_skip.")
+            logging.info("DEBUG, LOCK: Just before calling await on TWO asyncio tasks to acquire the TWO LOCKS (whichever it acquires first): _aggregation_done_lock, _aggregation_waiting_skip.")
             done, pending = await asyncio.wait(
                 [lock_task, skip_task],
                 return_when=asyncio.FIRST_COMPLETED,

@@ -97,9 +97,9 @@ class DFLUpdateHandler(UpdateHandler):
             federation_nodes (set): Set of node IDs expected to participate this round.
         """
 
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _update_federation_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _update_federation_lock.")
         await self._update_federation_lock.acquire_async()
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
         await self._updates_storage_lock.acquire_async()
         self._sources_expected = federation_nodes.copy()
         self._sources_received.clear()
@@ -158,7 +158,7 @@ class DFLUpdateHandler(UpdateHandler):
         if source in self._sources_expected:
             updt = Update(model, weight, source, round, time_received)
             
-            logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
+            logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
             await self._updates_storage_lock.acquire_async()
             if updt in self.us[source][1]:
                 logging.info(f"Discard | Alerady received update from source: {source} for round: {round}")
@@ -191,7 +191,7 @@ class DFLUpdateHandler(UpdateHandler):
         Returns:
             dict: A dictionary mapping node ID to (model, weight) tuples.
         """
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
         await self._updates_storage_lock.acquire_async()
         updates_missing = self._sources_expected.difference(self._sources_received)
         if updates_missing:
@@ -249,7 +249,7 @@ class DFLUpdateHandler(UpdateHandler):
             remove (bool): Whether to remove the node from the expected list.
         """
         logging.info(f"🔄 Update | remove: {remove} | source: {source}")
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
         await self._updates_storage_lock.acquire_async()
         if remove:
             self._sources_expected.discard(source)
@@ -273,9 +273,9 @@ class DFLUpdateHandler(UpdateHandler):
         Set a notification trigger and notify aggregator if all updates are already received.
         """
         logging.info("Set notification when all expected updates received")
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _round_updates_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _round_updates_lock.")
         await self._round_updates_lock.acquire_async()
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _updates_storage_lock.")
         await self._updates_storage_lock.acquire_async()
         all_received = await self._all_updates_received()
         await self._updates_storage_lock.release_async()
@@ -294,7 +294,7 @@ class DFLUpdateHandler(UpdateHandler):
         """
         Notify the aggregator that all expected updates have been received.
         """
-        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the _notification_sent_lock.")
+        logging.info("DEBUG, LOCK: Just before calling acquire_async to acquire the _notification_sent_lock.")
         await self._notification_sent_lock.acquire_async()
         if self._notification:
             await self._notification_sent_lock.release_async()
