@@ -341,6 +341,7 @@ class Engine:
             try:
                 logging.info("Trying to modify Role behavior")
                 lock_task = asyncio.create_task(self._round_in_process_lock.acquire_async())
+                logging.log("DEBUG, LOCK: Just before calling wait_for on the asyncio task to acquire the _round_in_process_lock.")
                 await asyncio.wait_for(lock_task, timeout=3)
                 self._role_behavior = change_role_behavior(self.rb, Role.AGGREGATOR, self, self.config)
                 await self.rb.set_next_role(Role.AGGREGATOR, source_to_notificate=source)
@@ -359,6 +360,7 @@ class Engine:
         else:
             try:
                 lock_task = asyncio.create_task(self._round_in_process_lock.acquire_async())
+                logging.log("DEBUG, LOCK: Just before calling wait_for on the asyncio task to acquire the _round_in_process_lock.")
                 await asyncio.wait_for(lock_task, timeout=3)
 
                 logging.info("Role behavior could be executed...")
@@ -397,6 +399,7 @@ class Engine:
         logging.info(f"📝  handle_federation_message | Trigger | Received aggregation finished message from {source}")
         current_round = await self.get_round()
         try:
+            logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the get_connections_lock.")
             await self.cm.get_connections_lock().acquire_async()
             if current_round is not None and source in self.cm.connections:
                 try:
@@ -529,6 +532,7 @@ class Engine:
         This method ensures that the operation is protected by a lock to avoid
         conflicts with ongoing training operations.
         """
+        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the trainning_in_progress_lock.")
         await self.trainning_in_progress_lock.acquire_async()
         logging.info("Update | learning rate modified...")
         self.trainer.update_model_learning_rate(new_lr)
@@ -553,11 +557,14 @@ class Engine:
 
         Logs important initialization information and direct connection state before training begins.
         """
+
+        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the learning_cycle_lock.")
         await self.learning_cycle_lock.acquire_async()
         try:
             model_serialized, rounds, round, _epochs = await self.sa.get_trainning_info()
             self.total_rounds = rounds
             epochs = _epochs
+            logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the get_round_lock.")
             await self.get_round_lock().acquire_async()
             self.round = round
             await self.get_round_lock().release_async()
@@ -659,6 +666,7 @@ class Engine:
 
         This function ensures proper synchronization and coordination before the federated rounds begin.
         """
+        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the federation_ready_lock.")
         await self.federation_ready_lock.acquire_async()
         if self.config.participant["device_args"]["start"]:
             logging.info(
@@ -701,11 +709,13 @@ class Engine:
         This method ensures that the learning process is initialized safely and only once,
         synchronizing startup across nodes and managing dependencies on federation readiness.
         """
+        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the learning_cycle_lock.")
         await self.learning_cycle_lock.acquire_async()
         try:
             if self.round is None:
                 self.total_rounds = self.config.participant["scenario_args"]["rounds"]
                 epochs = self.config.participant["training_args"]["epochs"]
+                logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the get_round_lock.")
                 await self.get_round_lock().acquire_async()
                 self.round = 0
                 await self.get_round_lock().release_async()
@@ -723,6 +733,7 @@ class Engine:
                 logging.info("💤  Waiting initialization of the federation...")
                 # Lock to wait for the federation to be ready (only affects the first round, when the learning starts)
                 # Only applies to non-start nodes --> start node does not wait for the federation to be ready
+                logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the get_federation_ready_lock.")
                 await self.get_federation_ready_lock().acquire_async()
                 if self.config.participant["device_args"]["start"]:
                     logging.info("Propagate initial model updates.")
@@ -878,7 +889,8 @@ class Engine:
                 current_time = time.time()
                 ree = RoundEndEvent(self.round, current_time)
                 await EventManager.get_instance().publish_node_event(ree)
-
+                
+                logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the learning_cycle_lock.")
                 await self.get_round_lock().acquire_async()
 
                 print_msg_box(

@@ -78,11 +78,11 @@ class Forwarder:
         try:
             while await self.is_running():
                 start_time = time.time()
-                logging.info("DEBUG: about to start self.pending_messages_lock.acquire_async")
+                logging.info("DEBUG, LOCK: about to start self.pending_messages_lock.acquire_async")
                 await self.pending_messages_lock.acquire_async()
-                logging.info("DEBUG: about to start self.process_pending_messages")
+                logging.info("DEBUG, LOCK: about to start self.process_pending_messages")
                 await self.process_pending_messages(messages_left=self.number_forwarded_messages)
-                logging.info("DEBUG: about to start self.process_pending_messages")
+                logging.info("DEBUG, LOCK: about to start self.process_pending_messages")
                 await self.pending_messages_lock.release_async()
                 sleep_time = max(0, self.interval - (time.time() - start_time))
                 await asyncio.sleep(sleep_time)

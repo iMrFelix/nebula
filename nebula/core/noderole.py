@@ -238,6 +238,7 @@ class TrainerAggregatorRoleBehavior(RoleBehavior):
     
     async def extended_learning_cycle(self):
         await self._engine.trainer.test()
+        logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the trainning_in_progress_lock.")
         await self._engine.trainning_in_progress_lock.acquire_async()
         await self._engine.trainer.train()
         await self._engine.trainning_in_progress_lock.release_async()

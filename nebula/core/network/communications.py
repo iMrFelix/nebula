@@ -816,6 +816,7 @@ class CommunicationsManager:
             bool: True if the hash was added (i.e., the message is new), False if it was already received.
         """
         try:
+            logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the receive_messages_lock.")
             await self.receive_messages_lock.acquire_async()
             if hash_message in self.received_messages_hashes:
                 logging.info("❗️  handle_incoming_message | Ignoring message already received.")
@@ -1200,6 +1201,7 @@ class CommunicationsManager:
             set: A set of connection addresses based on the filtering criteria.
         """
         try:
+            logging.log("DEBUG, LOCK: Just before calling acquire_async to acquire the get_connections_lock.")
             await self.get_connections_lock().acquire_async()
             if only_direct:
                 return {addr for addr, conn in self.connections.items() if conn.get_direct()}
