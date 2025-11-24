@@ -278,7 +278,7 @@ class CommunicationsManager:
             source (str): The sender's address.
             message (ModelLayerMessage): The model layer message containing the round, layer_index, and layer payload.
         """
-        logging.info(f"🤖  handle_modellayer_message | Received model layer {message.layer_index} from {source} with round {message.round} ({"initialization message" if message.round == -1 else "update message"})")
+        logging.info(f"🤖  handle_modellayer_message | Received model layer {message.layer_index} from {source} with round {message.round} ({'initialization message' if message.round == -1 else 'update message'})")
         if message.round == -1:
             modellayer_init_event = MessageEvent(("modellayer", "initialization"), source, message)
             asyncio.create_task(EventManager.get_instance().publish(modellayer_init_event))
