@@ -289,12 +289,18 @@ class Lightning:
         """
         od = OrderedDict()
         for name, blob in layers:
-            buf = io.BytesIO(blob)
-            with gzip.GzipFile(fileobj=buf, mode="rb") as f:
-                tensor = torch.load(f, map_location="cpu")
-            od[name] = tensor
-            buf.close()
+            od[name] = self.deserialize_layer(blob)
         return od
+
+    def deserialize_layer(self, data: bytes):
+        try:
+            buffer = io.BytesIO(data)
+            with gzip.GzipFile(fileobj=buffer, mode="rb") as f:
+                tensor = torch.load(f, map_location="cpu")
+            buffer.close()
+            return tensor
+        except Exception as e:
+            raise ParameterDeserializeError("Error decoding layer parameters") from e
 
     def serialize_model(self, model):
         # From https://pytorch.org/docs/stable/notes/serialization.html

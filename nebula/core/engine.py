@@ -4,6 +4,7 @@ import os
 import random
 import socket
 import time
+from collections import OrderedDict
 
 import docker
 
@@ -20,7 +21,6 @@ from nebula.core.nebulaevents import (
     RoundEndEvent,
     RoundStartEvent,
     UpdateNeighborEvent,
-    LayerUpdateReceivedEvent,
     UpdateReceivedEvent,
     ExperimentFinishEvent,
     ModelPropagationEvent,
@@ -41,7 +41,7 @@ import pdb
 import sys
 
 from nebula.config.config import Config
-from nebula.core.training.lightning import Lightning
+from nebula.core.training.lightning import Lightning, ParameterDeserializeError
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -114,6 +114,13 @@ class Engine:
 
         self._trainer = trainer(model, datamodule, config=self.config)
         self._aggregator = create_aggregator(config=self.config, engine=self)
+
+        # Per-layer update tracking
+        self._layer_buffers = {}
+        self._layer_buffers_lock = Locker("layer_buffers_lock", async_lock=True)
+        self._model_layer_names = ()
+        self._model_layer_count = 0
+        self._refresh_layer_metadata()
 
         self._secure_neighbors = []
         self._is_malicious = self.config.participant["adversarial_args"]["attack_params"]["attacks"] != "No Attack"
@@ -244,11 +251,136 @@ class Engine:
         self.round = new_round
         self.trainer.set_current_round(new_round)
 
+    def _refresh_layer_metadata(self):
+        model_state = self.trainer.get_model_parameters()
+        self._model_layer_names = tuple(model_state.keys())
+        self._model_layer_count = len(self._model_layer_names)
+
+    async def _release_federation_ready_lock_barrier(self):
+        for _ in range(2):
+            try:
+                await self.get_federation_ready_lock().release_async()
+            except RuntimeError:
+                break
+
+    def _assemble_model_from_layers(self, layers_map: dict[int, object], declared_total: int) -> OrderedDict | None:
+        if declared_total != self._model_layer_count:
+            logging.warning(
+                "Per-layer update metadata mismatch | declared_total=%s | local_total=%s",
+                declared_total,
+                self._model_layer_count,
+            )
+        if not self._model_layer_names:
+            self._refresh_layer_metadata()
+        if len(layers_map) != self._model_layer_count:
+            missing = set(range(self._model_layer_count)).difference(layers_map.keys())
+            logging.error("Cannot assemble model | Missing layer indices: %s", missing)
+            return None
+        ordered_state = OrderedDict()
+        for layer_index in range(self._model_layer_count):
+            layer_name = self._model_layer_names[layer_index]
+            ordered_state[layer_name] = layers_map[layer_index]
+        return ordered_state
+
+    async def _handle_reconstructed_model(self, source, round_number, weight, layers_map: dict[int, object], declared_total: int):
+        model_state = self._assemble_model_from_layers(layers_map, declared_total)
+        if model_state is None:
+            return
+        if round_number == -1:
+            logging.info("🤖  Per-layer initialization | Completed reconstruction from %s", source)
+            try:
+                self.trainer.set_model_parameters(model_state, initialize=True)
+                logging.info("🤖  Init Model | Model Parameters Initialized (per-layer)")
+                self.set_initialization_status(True)
+                await self._release_federation_ready_lock_barrier()
+            except RuntimeError:
+                pass
+            return
+
+        updt_received_event = UpdateReceivedEvent(model_state, weight, source, round_number)
+        await EventManager.get_instance().publish_node_event(updt_received_event)
+
+    async def _accumulate_layer_update(
+        self,
+        source: str,
+        round_number: int,
+        layer_index: int,
+        total_layers: int,
+        layer_tensor,
+        weight: int,
+    ):
+        if total_layers <= 0:
+            logging.error("Invalid total layer count (%s) from %s", total_layers, source)
+            return
+        if layer_index < 0 or layer_index >= total_layers:
+            logging.error(
+                "Out-of-range layer index %s/%s from %s (round %s)",
+                layer_index,
+                total_layers,
+                source,
+                round_number,
+            )
+            return
+        key = (source, round_number)
+        completion_snapshot = None
+        async with self._layer_buffers_lock:
+            buffer = self._layer_buffers.get(key)
+            if buffer is None:
+                buffer = {
+                    "total_layers": total_layers,
+                    "weight": weight,
+                    "layers": {},
+                }
+                self._layer_buffers[key] = buffer
+            else:
+                if buffer["total_layers"] != total_layers:
+                    logging.warning(
+                        "Per-layer update mismatch | source=%s | round=%s | expected_total=%s | received_total=%s",
+                        source,
+                        round_number,
+                        buffer["total_layers"],
+                        total_layers,
+                    )
+                if weight != buffer["weight"]:
+                    logging.debug(
+                        "Per-layer weight mismatch | source=%s | round=%s | stored_weight=%s | received_weight=%s",
+                        source,
+                        round_number,
+                        buffer["weight"],
+                        weight,
+                    )
+
+            buffer["layers"][layer_index] = layer_tensor
+            logging.info(
+                "Stored layer %s/%s for %s (round %s)",
+                len(buffer["layers"]),
+                buffer["total_layers"],
+                source,
+                round_number,
+            )
+            if len(buffer["layers"]) == buffer["total_layers"]:
+                completion_snapshot = {
+                    "layers": dict(buffer["layers"]),
+                    "weight": buffer["weight"],
+                    "total_layers": buffer["total_layers"],
+                }
+                del self._layer_buffers[key]
+
+        if completion_snapshot:
+            await self._handle_reconstructed_model(
+                source,
+                round_number,
+                completion_snapshot["weight"],
+                completion_snapshot["layers"],
+                completion_snapshot["total_layers"],
+            )
+
     """                                                     ##############################
                                                             #       MODEL CALLBACKS      #
                                                             ##############################
     """
 
+    # INFO: Callback executed in the beginning, when a non-starter node receives the initial model from the starter node (wlog, node 0).
     async def model_initialization_callback(self, source, message):
         logging.info(f"🤖  handle_model_message | Received model initialization from {source}")
         try:
@@ -256,32 +388,9 @@ class Engine:
             self.trainer.set_model_parameters(model, initialize=True)
             logging.info("🤖  Init Model | Model Parameters Initialized")
             self.set_initialization_status(True)
-            await (
-                self.get_federation_ready_lock().release_async()
-            )  # Enable learning cycle once the initialization is done
-            try:
-                await (
-                    self.get_federation_ready_lock().release_async()
-                )  # Release the lock acquired at the beginning of the engine
-            except RuntimeError:
-                pass
+            await self._release_federation_ready_lock_barrier()
         except RuntimeError:
             pass
-
-
-    async def model_layer_update_callback(self, source, message):
-        logging.info(f"🤖  handle_model_layer_message | Received model layer update from {source} with layer {message.layer_index} and round {message.round}")
-        if not self.get_federation_ready_lock().locked() and len(await self.get_federation_nodes()) == 0:
-            logging.info("🤖  handle_model_layer_message | There are no defined federation nodes")
-            return
-        # TODO: Implement deserialization logic. It works as follows:
-        #       Keep a data structure that stores all incoming layers (separately for each sender)
-        #       Once all layers have been received, you deserialize them, recombine them, and then hand them off to whatever function needs them afterwards
-        #       (look at how model_update_callback does it).
-        decoded_layer = self.trainer.deserialize_model_from_layers(message.parameters)
-        layer_updt_received_event = LayerUpdateReceivedEvent(decoded_layer, message.weight, source, message.round)
-        await EventManager.get_instance().publish_node_event(layer_updt_received_event)
-
 
     async def model_update_callback(self, source, message):
         logging.info(f"🤖  handle_model_message | Received model update from {source} with round {message.round}")
@@ -291,6 +400,32 @@ class Engine:
         decoded_model = self.trainer.deserialize_model(message.parameters)
         updt_received_event = UpdateReceivedEvent(decoded_model, message.weight, source, message.round)
         await EventManager.get_instance().publish_node_event(updt_received_event)
+
+    async def modellayer_initialization_callback(self, source, message):
+        logging.info("ERROR: Called modellayer for initialization! Not yet implemented (see propagator.py, InitialModelPropagation calls get_model_parameters without per_layer flag!")
+
+    async def modellayer_update_callback(self, source, message):
+        logging.info(f"🤖  handle_modellayer_message | Received model layer update from {source} with layer {message.layer_index} and round {message.round}")
+        if not self.get_federation_ready_lock().locked() and len(await self.get_federation_nodes()) == 0:
+            logging.info("🤖  handle_modellayer_message | There are no defined federation nodes")
+            return
+        try:
+            decoded_layer = self.trainer.deserialize_layer(message.parameters)
+        except ParameterDeserializeError:
+            logging.exception("Failed to deserialize layer %s from %s", message.layer_index, source)
+            return
+
+        await self._accumulate_layer_update(
+            source,
+            message.round,
+            message.layer_index,
+            message.total_layers,
+            decoded_layer,
+            message.weight,
+        )
+
+
+
 
     """                                                     ##############################
                                                             #      General callbacks     #
@@ -448,6 +583,10 @@ class Engine:
         # Additional callbacks not registered automatically
         await self.register_message_callback(("model", "initialization"), "model_initialization_callback")
         await self.register_message_callback(("model", "update"), "model_update_callback")
+
+        # CHANGE: Added callbacks for modellayer events
+        await self.register_message_callback(("modellayer", "initialization"), "modellayer_initialization_callback")
+        await self.register_message_callback(("modellayer", "update"), "modellayer_update_callback")
 
     async def register_message_events_callbacks(self):
         me_dict = self.cm.get_messages_events()

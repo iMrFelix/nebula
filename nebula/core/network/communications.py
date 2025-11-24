@@ -270,6 +270,22 @@ class CommunicationsManager:
             model_updt_event = MessageEvent(("model", "update"), source, message)
             asyncio.create_task(EventManager.get_instance().publish(model_updt_event))
 
+    async def handle_modellayer_message(self, source, message):
+        """
+        Handles a model layer message (per-layer transmission) and routes it as either initialization or update.
+
+        Args:
+            source (str): The sender's address.
+            message (ModelLayerMessage): The model layer message containing the round, layer_index, and layer payload.
+        """
+        logging.info(f"🤖  handle_modellayer_message | Received model layer {message.layer_index} from {source} with round {message.round} ({"initialization message" if message.round == -1 else "update message"})")
+        if message.round == -1:
+            modellayer_init_event = MessageEvent(("modellayer", "initialization"), source, message)
+            asyncio.create_task(EventManager.get_instance().publish(modellayer_init_event))
+        else:
+            modellayer_updt_event = MessageEvent(("modellayer", "update"), source, message)
+            asyncio.create_task(EventManager.get_instance().publish(modellayer_updt_event))
+
     def create_message(self, message_type: str, action: str = "", *args, **kwargs):
         """
         Creates a new protocol message using the MessagesManager.

@@ -130,7 +130,7 @@ class MessagesManager:
             addr_from (str): Address from which the message was received.
         """
         not_processing_messages = {"control_message", "connection_message"}
-        special_processing_messages = {"discovery_message", "federation_message", "model_message"}
+        special_processing_messages = {"discovery_message", "federation_message", "model_message", "modellayer_message"}
 
         try:
             message_wrapper = nebula_pb2.Wrapper()
@@ -169,6 +169,8 @@ class MessagesManager:
 
                     if message_type == "model_message":
                         await self.cm.handle_model_message(source, message_data)
+                    elif message_type == "modellayer_message":
+                        await self.cm.handle_modellayer_message(source, message_data)
                     else:
                         me = MessageEvent(
                             (msg_name, get_action_name_from_value(msg_name, message_data.action)), source, message_data
